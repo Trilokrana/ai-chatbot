@@ -1,3 +1,4 @@
+// src/components/ChatBotDemo.tsx
 "use client";
 
 import {
@@ -36,8 +37,8 @@ import { CopyIcon, GlobeIcon, RefreshCcwIcon } from "lucide-react";
 import { Loader } from "@/components/ai-elements/loader";
 import { Toaster, toast } from "sonner";
 import type { ToolData } from "@/lib/types";
-import { ToolRenderer } from "@/app/components/ToolRenderer";
 
+import { ToolRenderer } from "@/app/components/ToolRenderer";
 
 const models = [
   { name: "Gemini 2.5 Flash", value: "google/gemini-2.5-flash" },
@@ -65,132 +66,60 @@ const ChatBotDemo = () => {
     setInput("");
   };
 
-  const mapToolPayload = (toolName: string, payload: any): ToolData | null => {
-    if (!payload) return null;
-    switch (toolName) {
-      case "showMap":
-        return { type: "map", data: payload };
-      case "showIphoneSalesGraph":
-        return { type: "sales", data: payload };
-      case "getRecipe":
-        return { type: "recipe", data: payload };
-      case "showDietChart":
-        return { type: "diet", data: payload };
-      case "getWeather":
-        return { type: "weather", data: payload };
-      case "findProduct":
-        return { type: "product", data: payload };
-      case "getStockPrice":
-        return { type: "stock", data: payload };
-      case "findVideo":
-        return { type: "video", data: payload };
-      case "showImagePlaceholder":
-        return { type: "image", data: payload };
-      case "showUserProfile":
-        return { type: "profile", data: payload };
-      default:
-        return null;
-    }
-  };
 
-  const buildToolData = (message: any): [ToolData | null, any | null] => {
-    const parts = message?.parts ?? [];
+  const buildToolData = (parts: any[]): [ToolData | null, any | null] => {
     let finalToolData: ToolData | null = null;
     let debugPayload: any = null;
 
     try {
-      if (Array.isArray(message?.toolInvocations)) {
-        for (const invocation of message.toolInvocations) {
-          const toolName =
-            invocation?.toolName ?? invocation?.name ?? invocation?.tool;
-          if (!toolName) continue;
-
-          const payload =
-            invocation?.result ??
-            invocation?.output ??
-            invocation?.data ??
-            invocation?.input ??
-            invocation?.arguments ??
-            invocation?.toolInput;
-
-          const converted = mapToolPayload(toolName, payload);
-          if (converted) {
-            finalToolData = converted;
-            debugPayload = {
-              tool: toolName,
-              input: payload,
-              source: "toolInvocations",
-            };
-            return [finalToolData, debugPayload];
-          }
-        }
-      }
-
       const toolInputPart = parts.find(
         (part: any) => part.type === "tool-input-available"
       ) as any;
 
       if (toolInputPart) {
-        finalToolData = mapToolPayload(
-          toolInputPart.toolName,
-          toolInputPart.input
-        );
-        if (finalToolData) {
-          debugPayload = {
-            tool: toolInputPart.toolName,
-            input: toolInputPart.input,
-            source: "tool-input-available",
-          };
-          return [finalToolData, debugPayload];
+        debugPayload = {
+          tool: toolInputPart.toolName,
+          input: toolInputPart.input,
+        };
+        switch (toolInputPart.toolName) {
+          case "showMap":
+            finalToolData = { type: "map", data: toolInputPart.input };
+            break;
+          case "showIphoneSalesGraph":
+            finalToolData = { type: "sales", data: toolInputPart.input };
+            break;
+          case "getRecipe":
+            finalToolData = { type: "recipe", data: toolInputPart.input };
+            break;
+          case "showDietChart":
+            finalToolData = { type: "diet", data: toolInputPart.input };
+            break;
+          case "getWeather":
+            finalToolData = { type: "weather", data: toolInputPart.input };
+            break;
+          case "findProduct":
+            finalToolData = { type: "product", data: toolInputPart.input };
+            break;
+          case "getStockPrice":
+            finalToolData = { type: "stock", data: toolInputPart.input };
+            break;
+          case "findVideo":
+            finalToolData = { type: "video", data: toolInputPart.input };
+            break;
+          case "showImagePlaceholder":
+            finalToolData = { type: "image", data: toolInputPart.input };
+            break;
+          case "showUserProfile":
+            finalToolData = { type: "profile", data: toolInputPart.input };
+            break;
         }
-      }
-
-      const toolCallPart = parts.find(
-        (part: any) => part.type === "tool-call"
-      ) as any;
-      if (toolCallPart) {
-        finalToolData = mapToolPayload(toolCallPart.toolName, toolCallPart.input);
-        if (finalToolData) {
-          debugPayload = {
-            tool: toolCallPart.toolName,
-            input: toolCallPart.input,
-            source: "tool-call",
-          };
-          return [finalToolData, debugPayload];
-        }
-      }
-
-      const toolInputStart = parts.find(
-        (p: any) => p.type === "tool-input-start"
-      ) as any;
-      const deltas = parts.filter((p: any) => p.type === "tool-input-delta");
-
-      if (toolInputStart && deltas.length) {
-        const toolName = toolInputStart.toolName;
-        const joined = deltas
-          .map((p: any) => p.inputTextDelta ?? p.textDelta ?? p.delta ?? "")
-          .join("");
-
-        try {
-          const inputObject = JSON.parse(joined);
-          finalToolData = mapToolPayload(toolName, inputObject);
-          if (finalToolData) {
-            debugPayload = {
-              tool: toolName,
-              input: inputObject,
-              source: "tool-input-delta",
-            };
-            return [finalToolData, debugPayload];
-          }
-        } catch {
-          debugPayload = { tool: toolName, streaming: joined };
-        }
+        return [finalToolData, debugPayload];
       }
     } catch (err) {
       console.warn("Tool parsing error", err);
     }
 
-    return [null, null];
+    return [null, null]; 
   };
 
   return (
@@ -199,7 +128,6 @@ const ChatBotDemo = () => {
         <Conversation className="flex-1">
           <ConversationContent className="overflow-auto pb-2">
             {messages.map((message) => {
-              // --- AGGREGATE TEXT ---
               const textContent = message.parts
                 .filter(
                   (part: any) =>
@@ -208,16 +136,15 @@ const ChatBotDemo = () => {
                 .map((part: any) => part.text ?? part.textDelta ?? "")
                 .join("");
 
-              const [finalToolData, assembledToolPayload] =
-                buildToolData(message);
+              const [finalToolData, assembledToolPayload] = buildToolData(
+                message.parts
+              );
 
               console.debug("TOOL DEBUG (FrontEnd)", {
                 messageId: message.id,
                 "Render Hoga?": finalToolData ? "HAAN" : "NAHI",
                 finalToolData,
                 assembledToolPayload,
-                parts: message.parts,
-                toolInvocations: (message as any).toolInvocations,
               });
 
               const lastAssistantMessageId = [...messages]
@@ -229,7 +156,6 @@ const ChatBotDemo = () => {
 
               return (
                 <div key={message.id}>
-                  {/* Render text content */}
                   {textContent && (
                     <Message from={message.role} className="overflow-visible">
                       <MessageContent className="overflow-visible">
@@ -238,7 +164,6 @@ const ChatBotDemo = () => {
                     </Message>
                   )}
 
-                  {/* Render actions (copy/retry) */}
                   {isLatestAssistantMessage && (
                     <Actions className="mt-2">
                       <Action onClick={() => regenerate()} label="Retry">
@@ -263,7 +188,6 @@ const ChatBotDemo = () => {
                     </Actions>
                   )}
 
-  
                   {finalToolData ? (
                     <div className="mt-3">
                       <ToolRenderer data={finalToolData} />
