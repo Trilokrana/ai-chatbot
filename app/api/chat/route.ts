@@ -1,16 +1,11 @@
-import {
-  UIMessage,
-  convertToModelMessages,
-  streamText,
-  tool,
-  type Tool,
-} from "ai";
+import { UIMessage, convertToModelMessages, streamText } from "ai";
 import { createGoogleGenerativeAI, google } from "@ai-sdk/google";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
+// ---------- Schemas ----------
 const iphoneSalesSchema = z.object({
   year: z.number().describe("The year for the sales data"),
   salesData: z.array(
@@ -24,7 +19,9 @@ const iphoneSalesSchema = z.object({
 const weatherSchema = z.object({
   location: z.string().describe("The city and state, e.g., San Francisco, CA"),
   temperature: z.number().describe("The current temperature in Celsius"),
-  condition: z.string().describe("The weather condition, e.g., 'Sunny', 'Cloudy'"),
+  condition: z
+    .string()
+    .describe("The weather condition, e.g., 'Sunny', 'Cloudy'"),
   humidity: z.number().describe("The humidity percentage"),
 });
 
@@ -43,7 +40,9 @@ const recipeSchema = z.object({
 });
 
 const dietSchema = z.object({
-  title: z.string().describe("The title of the diet plan, e.g., 'High Protein Plan'"),
+  title: z
+    .string()
+    .describe("The title of the diet plan, e.g., 'High Protein Plan'"),
   plan: z.string().describe("A brief description of the plan"),
   chartType: z.enum(["pie", "donut"]).describe("The type of chart to display"),
   data: z.array(
@@ -62,7 +61,9 @@ const stockSchema = z.object({
 });
 
 const mapLocationSchema = z.object({
-  location: z.string().describe("The location to show on the map, e.g., 'Eiffel Tower'"),
+  location: z
+    .string()
+    .describe("The location to show on the map, e.g., 'Taj Mahal'"),
   latitude: z.number().describe("The latitude of the location"),
   longitude: z.number().describe("The longitude of the location"),
   zoom: z.number().describe("The zoom level for the map, e.g., 15"),
@@ -76,7 +77,9 @@ const videoSearchSchema = z.object({
 
 const imageSchema = z.object({
   prompt: z.string().describe("The text prompt used to imagine the image"),
-  description: z.string().describe("A short description of the generated image"),
+  description: z
+    .string()
+    .describe("A short description of the generated image"),
 });
 
 const userProfileSchema = z.object({
@@ -84,43 +87,21 @@ const userProfileSchema = z.object({
   bio: z.string().describe("A short biography"),
   skills: z.array(z.string()).describe("A list of the user's skills"),
 });
+// ---------- End Schemas ----------
 
-// Fixed createEchoTool function
-function createEchoTool(description: string, schema: z.ZodTypeAny) {
-  return tool({
-    description,
-    parameters: schema,
-    execute: async (arg: any) => {
-      return arg;
-    },
-  });
-}
-
+// Use schemas directly as Generative UI tools
 const allTools: Record<string, any> = {
-  showIphoneSalesGraph: createEchoTool(
-    "Show a bar graph of iPhone sales data for a specified year.",
-    iphoneSalesSchema
-  ),
-  getWeather: createEchoTool("Get the current weather for a specific location.", weatherSchema),
-  findProduct: createEchoTool("Find and display information about a product.", productSchema),
-  getRecipe: createEchoTool("Get a recipe for a specific dish.", recipeSchema),
-  showDietChart: createEchoTool(
-    "Show a pie or donut chart for a diet plan's macronutrient breakdown.",
-    dietSchema
-  ),
-  getStockPrice: createEchoTool(
-    "Get the current stock price for a ticker symbol.",
-    stockSchema
-  ),
-  showMap: createEchoTool("Show a map of a specific location.", mapLocationSchema),
-  findVideo: createEchoTool("Find a video (e.g., on YouTube) and show an embed.", videoSearchSchema),
-  showImagePlaceholder: createEchoTool(
-    "Show a placeholder for a generated image based on a prompt.",
-    imageSchema
-  ),
-  showUserProfile: createEchoTool("Display a user profile card.", userProfileSchema),
+  showIphoneSalesGraph: iphoneSalesSchema,
+  getWeather: weatherSchema,
+  findProduct: productSchema,
+  getRecipe: recipeSchema,
+  showDietChart: dietSchema,
+  getStockPrice: stockSchema,
+  showMap: mapLocationSchema,
+  findVideo: videoSearchSchema,
+  showImagePlaceholder: imageSchema,
+  showUserProfile: userProfileSchema,
 };
-
 
 export async function POST(req: Request) {
   const payload = (await req.json()) as {
@@ -132,38 +113,38 @@ export async function POST(req: Request) {
   const requestOptions = payload.body ?? {};
 
   const googleProvider = createGoogleGenerativeAI({
-    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? process.env.GOOGLE_API_KEY,
+    apiKey:
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? process.env.GOOGLE_API_KEY,
   });
 
   const convertedMessages = convertToModelMessages(messages);
 
   const systemInstructions: string[] = [
-    "You are a helpful and dynamic AI assistant. Your goal is to provide a great, interactive experience.",
-    "When a user asks a question, first provide a concise text-based answer.",
-    "Then, if the answer can be enhanced with a visual component, you MUST ALSO call the appropriate tool to provide that component.",
-    "For `getRecipe`, `showUserProfile`, `findProduct`, `showIphoneSalesGraph`, `showDietChart`: You MUST generate a plausible, fictional set of data that fits the entire schema.",
-    "Example for `showDietChart`: If the user says 'keto', generate a high-fat (70%), mid-protein (25%), low-carb (5%) breakdown and a 'donut' chartType.",
-    "For `showMap`: Extract the location name (e.g., 'Taj Mahal') and put it in the `location` field. You MUST also generate a realistic `latitude`, `longitude`, and `zoom` (e.g., 15) for it.",
-    "For `showImagePlaceholder`: Extract the user's idea (e.g., 'minimalist coffee bean') and put it in the `prompt` field. You MUST generate a brief `description` for it.",
-    "ALWAYS provide a text response *with* the tool call. Never call a tool without text.",
+    "You are a helpful and dynamic AI assistant. Provide a concise text answer.",
+    "If a visual helps, ALSO call the appropriate tool with a complete payload.",
+    "Generate plausible data that fits the schema when values are missing.",
+    "For showMap: fill location, latitude, longitude, zoom (e.g., 15).",
+    "Always include text plus the tool call.",
   ];
 
-  let toolsToUse: Record<string, Tool<any, any>> = { ...allTools };
+
+  let toolsToUse: Record<string, any> = { ...allTools };
 
   if (requestOptions.webSearch) {
-    systemInstructions.push(
-      "Web search is ENABLED. When a user asks for a specific video, try to provide a realistic `videoId` and `title`, then call the `findVideo` tool."
-    );
     const googleSearchTool = (googleProvider as any)?.search;
     if (typeof googleSearchTool === "function") {
-      toolsToUse = {
-        ...toolsToUse,
-        search: googleSearchTool.call(googleProvider) as Tool<any, any>,
-      };
+      toolsToUse.search = googleSearchTool.call(googleProvider);
+      systemInstructions.push(
+        "Web search is ENABLED; for findVideo try to return a real videoId and title."
+      );
+    } else {
+      systemInstructions.push(
+        "Web search not available; for findVideo generate a plausible fictional videoId and title."
+      );
     }
   } else {
     systemInstructions.push(
-      "Web search is DISABLED. For `findVideo`, mention that you cannot perform live search, then generate a plausible fictional `videoId` and `title`."
+      "Web search is DISABLED; for findVideo generate a plausible fictional videoId and title."
     );
   }
 
@@ -174,7 +155,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model,
     messages: convertedMessages,
-    // tools: toolsToUse, // ✅ UNCOMMENTED - यह सबसे important fix है
+    // tools: toolsToUse, 
     system: systemInstructions.join(" "),
     toolChoice: "auto",
   });
