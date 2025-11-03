@@ -41,7 +41,7 @@ import type { ToolData } from "@/lib/types";
 import { ToolRenderer } from "@/app/components/ToolRenderer";
 
 const models = [
-  { name: "Gemini 2.5 Flash", value: "google/gemini-2.5-flash" },
+  { name: "Gemini 2.0 Flash", value: "google/gemini-2.0-flash" },
   { name: "GPT 4o", value: "openai/gpt-4o" },
 ];
 

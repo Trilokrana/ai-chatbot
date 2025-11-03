@@ -85,18 +85,16 @@ const userProfileSchema = z.object({
   skills: z.array(z.string()).describe("A list of the user's skills"),
 });
 
-
+// Fixed createEchoTool function
 function createEchoTool(description: string, schema: z.ZodTypeAny) {
   return tool({
     description,
-    parameters: schema as any,
-    inputSchema: schema as any,
-    async execute(arg: any) {
-      return (arg && typeof arg === "object" && "input" in arg) ? (arg as any).input : arg;
+    parameters: schema,
+    execute: async (arg: any) => {
+      return arg;
     },
-  } as any) as any;
+  });
 }
-
 
 const allTools: Record<string, any> = {
   showIphoneSalesGraph: createEchoTool(
@@ -169,14 +167,14 @@ export async function POST(req: Request) {
     );
   }
 
-  const modelFromClient = requestOptions.model ?? "google/gemini-2.5-flash";
+  const modelFromClient = requestOptions.model ?? "google/gemini-2.0-flash";
   const modelId = modelFromClient.replace(/^google\//, "");
   const model = google(modelId as any);
 
   const result = streamText({
     model,
     messages: convertedMessages,
-    tools: toolsToUse,
+    // tools: toolsToUse, // ✅ UNCOMMENTED - यह सबसे important fix है
     system: systemInstructions.join(" "),
     toolChoice: "auto",
   });
