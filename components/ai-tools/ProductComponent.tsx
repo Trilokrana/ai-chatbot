@@ -4,7 +4,6 @@ import { ShoppingCartIcon } from "lucide-react";
 
 const ProductComponent = ({ data }: { data: ProductData }) => {
   return (
-    // --- Change: Added transition and hover shadow ---
     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg my-2 border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300 hover:shadow-lg group">
       <div className="flex space-x-4">
         <div className="bg-gray-200 dark:bg-gray-700 rounded-lg size-24 flex items-center justify-center transition-all duration-300 group-hover:scale-105">

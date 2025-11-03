@@ -1,4 +1,3 @@
-// src/app/api/chat/route.ts
 import {
   UIMessage,
   convertToModelMessages,
@@ -11,7 +10,6 @@ import { z } from "zod";
 
 export const maxDuration = 30;
 
-// --- 1. Schemas (No changes, your schemas are good) ---
 const iphoneSalesSchema = z.object({
   year: z.number().describe("The year for the sales data"),
   salesData: z.array(
@@ -85,7 +83,6 @@ const userProfileSchema = z.object({
   skills: z.array(z.string()).describe("A list of the user's skills"),
 });
 
-// --- Main API Function ---
 
 export async function POST(req: Request) {
   const {
@@ -101,19 +98,16 @@ export async function POST(req: Request) {
 
   const convertedMessages = convertToModelMessages(messages);
 
-  //
-  // --- ⭐ YEH HAI FIX: Instructions ko aur clear kar diya hai ---
-  //
+
   const systemInstructions = [
     "You are a helpful and dynamic AI assistant. Your goal is to provide a great, interactive experience.",
     "When a user asks a question, first provide a concise text-based answer.",
     "Then, if the answer can be enhanced with a visual component, you MUST ALSO call the appropriate tool to provide that component.",
 
-    // Instructions for tools that generate data
     "For `getRecipe`, `showUserProfile`, `findProduct`, `showIphoneSalesGraph`, `showDietChart`: You MUST generate a plausible, fictional set of data that fits the entire schema.",
     "Example for `showDietChart`: If the user says 'keto', generate a high-fat (70%), mid-protein (25%), low-carb (5%) breakdown and a 'donut' chartType.",
 
-    // --- ⭐ YAHAN HAI ASLI FIX (MAP, VIDEO, IMAGE) ---
+
     "For `showMap`: Extract the location name (e.g., 'Taj Mahal') and put it in the `location` field. You MUST also generate a realistic `latitude`, `longitude`, and `zoom` (e.g., 15) for it.",
     "For `findVideo`: Extract the user's topic (e.g., 'CSS Flexbox') and put it in the `query` field. You MUST generate a realistic, fictional `videoId` and `title`.",
     "For `showImagePlaceholder`: Extract the user's idea (e.g., 'minimalist coffee bean') and put it in the `prompt` field. You MUST generate a brief `description` for it.",
@@ -131,7 +125,7 @@ export async function POST(req: Request) {
 
   const makeTool = tool as unknown as <T>(...args: any[]) => Tool<T, any>;
 
-  // --- 2. Tool Definitions (All 10 tools are here) ---
+
   const allTools = {
     showIphoneSalesGraph: makeTool(
       "Show a bar graph of iPhone sales data for a specified year.",

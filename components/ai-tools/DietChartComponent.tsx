@@ -33,11 +33,9 @@ const DietChartComponent = ({ data }: { data: DietData }) => {
   });
 
   return (
-    // --- Change: Added transition and hover shadow ---
     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg my-2 border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300 hover:shadow-lg">
       <h3 className="font-bold text-lg mb-3">{data.title}</h3>
       <div className="flex items-center gap-6">
-        {/* --- Change: Added group and hover scale --- */}
         <svg
           width={2 * center}
           height={2 * center}
@@ -68,7 +66,6 @@ const DietChartComponent = ({ data }: { data: DietData }) => {
 
         <div className="flex flex-col gap-2">
           {data.data.map((d, i) => (
-            // --- Change: Added transition and hover bg ---
             <div
               key={i}
               className="flex items-center gap-2 p-1 rounded transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700"

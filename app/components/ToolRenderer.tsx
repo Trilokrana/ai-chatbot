@@ -1,5 +1,4 @@
-"use client";
-import React from "react";
+
 import type { ToolData } from "@/lib/types";
 import BarChartComponent from "@/components/ai-tools/BarChartComponent";
 import DietChartComponent from "@/components/ai-tools/DietChartComponent";

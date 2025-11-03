@@ -1,9 +1,7 @@
-// src/components/ai-tools/MapComponent.tsx
 "use client";
 import type { MapData } from "@/lib/types";
 
 const MapComponent = ({ data }: { data: MapData }) => {
-  // 1. Get the API key from your environment variables
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   console.log("Google Maps API Key:", apiKey);
 
@@ -24,7 +22,6 @@ const MapComponent = ({ data }: { data: MapData }) => {
     );
   }
 
-  // 4. If the key exists, render the actual map
   return (
     <div className="rounded-lg overflow-hidden my-2 border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300 hover:shadow-lg group">
       <div className="relative bg-gray-100 dark:bg-gray-800 h-80">

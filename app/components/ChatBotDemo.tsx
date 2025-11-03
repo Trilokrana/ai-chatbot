@@ -1,4 +1,3 @@
-// src/components/ChatBotDemo.tsx
 "use client";
 
 import {
@@ -36,14 +35,10 @@ import { Response } from "@/components/ai-elements/response";
 import { CopyIcon, GlobeIcon, RefreshCcwIcon } from "lucide-react";
 import { Loader } from "@/components/ai-elements/loader";
 import { Toaster, toast } from "sonner";
-
-// --- Custom Imports for refactored code ---
-import type { ToolData } from "@/lib/types"; // Shared types
-
-// --- ⭐ BUG #2 FIX: Import path sahi kiya ---
+import type { ToolData } from "@/lib/types";
 import { ToolRenderer } from "@/app/components/ToolRenderer";
 
-// --- Main Chat Component ---
+
 const models = [
   { name: "Gemini 2.5 Flash", value: "google/gemini-2.5-flash" },
   { name: "GPT 4o", value: "openai/gpt-4o" },
@@ -213,7 +208,6 @@ const ChatBotDemo = () => {
                 .map((part: any) => part.text ?? part.textDelta ?? "")
                 .join("");
 
-              // --- Naya parser yahan call ho raha hai ---
               const [finalToolData, assembledToolPayload] =
                 buildToolData(message);
 
@@ -269,7 +263,7 @@ const ChatBotDemo = () => {
                     </Actions>
                   )}
 
-                  {/* Render tool UI */}
+  
                   {finalToolData ? (
                     <div className="mt-3">
                       <ToolRenderer data={finalToolData} />
@@ -277,7 +271,6 @@ const ChatBotDemo = () => {
                   ) : assembledToolPayload &&
                     !finalToolData &&
                     typeof assembledToolPayload === "object" ? (
-                    // Debug view agar data parse nahi hua
                     <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/40 rounded border border-yellow-200 dark:border-yellow-700">
                       <strong className="block mb-2">
                         Tool payload received (unknown shape):
@@ -301,7 +294,6 @@ const ChatBotDemo = () => {
           globalDrop
           multiple
         >
-          {/* ... (Baaki ka prompt input code jaisa tha waisa hi hai) ... */}
           <PromptInputHeader>
             <PromptInputAttachments>
               {(attachment) => <PromptInputAttachment data={attachment} />}
@@ -331,7 +323,6 @@ const ChatBotDemo = () => {
                 <span>Search</span>
               </PromptInputButton>
               <PromptInputModelSelect
-                // --- ⭐ BUG #3 FIX: Typo sahi kiya ---
                 onValueChange={(value: any) => {
                   setModel(value);
                 }}
