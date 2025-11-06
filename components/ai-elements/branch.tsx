@@ -2,10 +2,12 @@
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { UIMessage } from "ai";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
 import { createContext, useContext, useEffect, useState } from "react";
+
+// Define the message role type locally instead of importing UIMessage
+type MessageRole = "user" | "assistant" | "system" | "tool";
 
 type BranchContextType = {
   currentBranch: number;
@@ -106,7 +108,7 @@ export const BranchMessages = ({ children, ...props }: BranchMessagesProps) => {
 };
 
 export type BranchSelectorProps = HTMLAttributes<HTMLDivElement> & {
-  from: UIMessage["role"];
+  from: MessageRole;
 };
 
 export const BranchSelector = ({

@@ -1,7 +1,13 @@
 import { cn } from "@/lib/utils";
-import type { Experimental_GeneratedImage } from "ai";
 
-export type ImageProps = Experimental_GeneratedImage & {
+// Define our own interface instead of importing from "ai"
+interface GeneratedImage {
+  base64: string;
+  uint8Array?: Uint8Array;
+  mediaType: string;
+}
+
+export type ImageProps = GeneratedImage & {
   className?: string;
   alt?: string;
 };

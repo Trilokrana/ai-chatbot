@@ -35,7 +35,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type { ChatStatus, FileUIPart } from "ai";
 import {
   ImageIcon,
   Loader2Icon,
@@ -69,6 +68,20 @@ import {
   useRef,
   useState,
 } from "react";
+
+// ============================================================================
+// Local Type Definitions (instead of importing from "ai")
+// ============================================================================
+
+type ChatStatus = "idle" | "submitted" | "streaming" | "error" | "pending";
+
+interface FileUIPart {
+  type: "file";
+  url: string;
+  mediaType?: string;
+  filename?: string;
+}
+
 // ============================================================================
 // Provider Context & Types
 // ============================================================================

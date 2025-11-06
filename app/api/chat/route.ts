@@ -60,7 +60,7 @@ function buildTools(modelInstance: ReturnType<typeof google>) {
 
   for (const [name, schema] of Object.entries(schemas)) {
     tools[name] = tool({
-      description: `Generate structured ${name} data when user asks for ${name}`,
+      description: `Generate structured ${name} data when user specifically requests ${name} information with intent to display it`,
       parameters: z.object({
         userRequest: z.string().describe(`The user's request for ${name} data`),
       }),
@@ -98,19 +98,39 @@ export async function POST(req: Request) {
     const model = google(modelName);
     const tools = buildTools(model);
 
-    const systemPrompt = `You are a helpful AI assistant. You can:
-1. Answer any general questions completely
-2. Write essays, poems, stories in full
-3. Generate structured data using tools when specifically asked
+    // FIXED SYSTEM PROMPT - More flexible and clear
+    const systemPrompt = `You are a helpful, knowledgeable AI assistant. You can:
 
-For general questions, respond with complete, detailed answers.
-Use tools only when user asks for weather, products, recipes, sales data, diet plans, stock info, or maps.
+1. **Answer ANY general questions** - math, conversions, facts, explanations, etc.
+2. **Have conversations** - chat about any topic freely
+3. **Write content** - essays, poems, stories, explanations
+4. **Provide information** - on any subject you know about
+5. **Use specialized tools** ONLY when user specifically wants structured data displays
 
-Be thorough and helpful.`;
+## When to use tools (be very specific):
+- Weather tool: "What's the weather in [city]?" or "Show me weather for [location]"
+- Product tool: "Tell me about [specific product]" or "Show me details for [product]" 
+- Recipe tool: "Give me a recipe for [dish]" or "How to make [food]"
+- Sales tool: "Show iPhone sales data" or "iPhone sales by month"
+- Diet tool: "Create a diet plan" or "Show me a nutrition chart"
+- Stock tool: "What's [company] stock price?" (for current stock data display)
+- Map tool: "Show me [location] on a map" or "Map coordinates for [place]"
+
+## When NOT to use tools:
+- Currency conversions (1 USD = ₹83 approximately)
+- General math questions
+- Historical information
+- Explanations and definitions
+- General knowledge queries
+- Conversational questions
+
+**IMPORTANT**: For questions like "What is the price of one dollar in Indian rupees?", just answer directly: "1 USD is approximately ₹83 (exchange rates fluctuate)". Don't use tools for this.
+
+Always be helpful and answer every reasonable question directly unless it specifically requires structured data visualization.`;
 
     console.log("📨 Processing request with", messages.length, "messages");
+    console.log("📝 User query:", messages[messages.length - 1]?.content);
 
-    // USE generateText instead of streamText for complete responses
     const result = await generateText({
       model,
       system: systemPrompt,
@@ -123,7 +143,6 @@ Be thorough and helpful.`;
     console.log("✅ Generated response:", result.text.substring(0, 100));
     console.log("🔧 Tool results:", result.toolResults?.length || 0);
 
-    // Return complete response with tool results
     return new Response(
       JSON.stringify({
         content: result.text,

@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/hover-card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import type { LanguageModelUsage } from "ai";
 import { type ComponentProps, createContext, useContext } from "react";
 import { getUsage } from "tokenlens";
 
@@ -20,10 +19,20 @@ const ICON_STROKE_WIDTH = 2;
 
 type ModelId = string;
 
+// Define our own usage type to match what we actually receive
+type CustomLanguageModelUsage = {
+  inputTokens?: number;
+  outputTokens?: number;
+  reasoningTokens?: number;
+  cachedInputTokens?: number;
+  promptTokens?: number;
+  completionTokens?: number;
+};
+
 type ContextSchema = {
   usedTokens: number;
   maxTokens: number;
-  usage?: LanguageModelUsage;
+  usage?: CustomLanguageModelUsage;
   modelId?: ModelId;
 };
 

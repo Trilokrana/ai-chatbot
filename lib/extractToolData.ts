@@ -6,14 +6,11 @@ import type {
   RecipeData,
   StockData,
   MapData,
-  VideoData,
-  ImageData,
   DietData,
-  UserProfileData,
-} from "@/lib/types"; // <-- FIX: Import from @/lib/types
+} from "@/lib/types";
 
 // Helper: extractToolData from tool parts (handles input/output/result shapes)
-export const extractToolData = (parts: any[]): ToolData => {
+export const extractToolData = (parts: any[]): ToolData | null => {
   if (!parts || !Array.isArray(parts)) return null;
 
   try {
@@ -41,6 +38,8 @@ export const extractToolData = (parts: any[]): ToolData => {
             return { type: "diet", data: d as DietData };
           }
         }
+        
+        // Check for sales data
         if (
           candidate?.year &&
           candidate?.salesData &&
@@ -48,6 +47,7 @@ export const extractToolData = (parts: any[]): ToolData => {
         ) {
           return { type: "sales", data: candidate as ChartData };
         }
+        
         // also allow if candidate is already the inner input for diet
         if (
           candidate?.title &&
@@ -57,29 +57,30 @@ export const extractToolData = (parts: any[]): ToolData => {
         ) {
           return { type: "diet", data: candidate as DietData };
         }
+        
+        // Check for map data
         if (candidate?.latitude && candidate?.longitude) {
           return { type: "map", data: candidate as MapData };
         }
+        
+        // Check for weather data
         if (candidate?.location && candidate?.temperature !== undefined) {
           return { type: "weather", data: candidate as WeatherData };
         }
+        
+        // Check for product data
         if (candidate?.productName) {
           return { type: "product", data: candidate as ProductData };
         }
+        
+        // Check for recipe data (duplicate check, but keep for safety)
         if (candidate?.recipeName) {
           return { type: "recipe", data: candidate as RecipeData };
         }
+        
+        // Check for stock data
         if (candidate?.ticker) {
           return { type: "stock", data: candidate as StockData };
-        }
-        if (candidate?.videoId) {
-          return { type: "video", data: candidate as VideoData };
-        }
-        if (candidate?.prompt) {
-          return { type: "image", data: candidate as ImageData };
-        }
-        if (candidate?.name && candidate?.skills) {
-          return { type: "profile", data: candidate as UserProfileData };
         }
       }
 
@@ -168,7 +169,9 @@ export const extractToolData = (parts: any[]): ToolData => {
             }
             if (parsed2?.year && parsed2?.salesData)
               return { type: "sales", data: parsed2 as ChartData };
-          } catch {}
+          } catch {
+            // Ignore parsing errors
+          }
         }
       }
     }
@@ -181,7 +184,9 @@ export const extractToolData = (parts: any[]): ToolData => {
           const parsed = JSON.parse(txt);
           if (parsed?.year && parsed?.salesData)
             return { type: "sales", data: parsed as ChartData };
-        } catch {}
+        } catch {
+          // Ignore parsing errors
+        }
       }
     }
   } catch (err) {
