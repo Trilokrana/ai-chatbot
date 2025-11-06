@@ -3,6 +3,7 @@ import type { StockData } from "@/lib/types";
 import { LineChartIcon } from "lucide-react";
 
 const StockComponent = ({ data }: { data: StockData }) => {
+  console.log("📈 [FRONTEND] StockComponent got data:", data);
   const isPositive = !data.change.startsWith("-");
   return (
     <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg my-2 border border-gray-200 dark:border-gray-700 flex items-center justify-between transition-all duration-300 hover:shadow-lg group">

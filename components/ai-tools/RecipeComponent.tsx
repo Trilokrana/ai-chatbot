@@ -2,6 +2,7 @@
 import type { RecipeData } from "@/lib/types";
 
 export default function RecipeComponent({ data }: { data: RecipeData }) {
+  console.log("🍽️ [FRONTEND] RecipeComponent got data:", data);
   return (
     <div className="bg-gray-50 dark:bg-gray-800 rounded border px-8 py-5 text-sm transition-all duration-300 hover:shadow-lg">
       <h3 className="text-lg font-semibold mb-2">{data.recipeName}</h3>

@@ -1,6 +1,7 @@
-// src/components/ChatBotDemo.tsx
 "use client";
 
+import { useState } from "react";
+import { useCompleteChat } from "@/lib/useCompleteChat";
 import {
   Conversation,
   ConversationContent,
@@ -30,96 +31,59 @@ import {
   PromptInputHeader,
 } from "@/components/ai-elements/prompt-input";
 import { Action, Actions } from "@/components/ai-elements/actions";
-import { useState } from "react";
-import { useChat, type UIMessage } from "@ai-sdk/react";
 import { Response } from "@/components/ai-elements/response";
 import { CopyIcon, GlobeIcon, RefreshCcwIcon } from "lucide-react";
 import { Loader } from "@/components/ai-elements/loader";
 import { Toaster, toast } from "sonner";
 import type { ToolData } from "@/lib/types";
-
-import { ToolRenderer } from "@/app/components/ToolRenderer";
+import ToolRenderer from "@/app/components/ToolRenderer";
 
 const models = [
-  { name: "Gemini 2.0 Flash", value: "google/gemini-2.0-flash" },
-  { name: "GPT 4o", value: "openai/gpt-4o" },
+  { name: "Gemini 2.0 Flash", value: "gemini-2.0-flash" },
+  { name: "Gemini 1.5 Pro", value: "gemini-1.5-pro" },
 ];
 
 const ChatBotDemo = () => {
   const [input, setInput] = useState("");
   const [model, setModel] = useState<string>(models[0].value);
-  const [webSearch, setWebSearch] = useState(false);
-  const { messages, sendMessage, status, regenerate } = useChat();
 
-  const handleSubmit = (message: PromptInputMessage) => {
-    const hasText = Boolean(message.text);
-    const hasAttachments = Boolean(message.files?.length);
-    if (!(hasText || hasAttachments)) return;
+  const { messages, append, isLoading, reload } = useCompleteChat({
+    api: "/api/chat",
+  });
 
-    sendMessage(
-      {
-        text: message.text || "Sent with attachments",
-        files: message.files,
-      },
-      { body: { model: model, webSearch: webSearch } }
-    );
+  const handleSubmit = async (message: PromptInputMessage) => {
+    if (!message.text?.trim()) return;
+
+    await append({
+      role: "user",
+      content: message.text,
+    });
+
     setInput("");
   };
 
+  const getToolData = (message: any): ToolData | null => {
+    if (!message.toolInvocations?.length) return null;
 
-  const buildToolData = (parts: any[]): [ToolData | null, any | null] => {
-    let finalToolData: ToolData | null = null;
-    let debugPayload: any = null;
-
-    try {
-      const toolInputPart = parts.find(
-        (part: any) => part.type === "tool-input-available"
-      ) as any;
-
-      if (toolInputPart) {
-        debugPayload = {
-          tool: toolInputPart.toolName,
-          input: toolInputPart.input,
+    for (const invocation of message.toolInvocations) {
+      if (invocation.result) {
+        const typeMap: Record<string, ToolData["type"]> = {
+          weather: "weather",
+          product: "product",
+          recipe: "recipe",
+          iphoneSales: "sales",
+          diet: "diet",
+          stock: "stock",
+          map: "map",
         };
-        switch (toolInputPart.toolName) {
-          case "showMap":
-            finalToolData = { type: "map", data: toolInputPart.input };
-            break;
-          case "showIphoneSalesGraph":
-            finalToolData = { type: "sales", data: toolInputPart.input };
-            break;
-          case "getRecipe":
-            finalToolData = { type: "recipe", data: toolInputPart.input };
-            break;
-          case "showDietChart":
-            finalToolData = { type: "diet", data: toolInputPart.input };
-            break;
-          case "getWeather":
-            finalToolData = { type: "weather", data: toolInputPart.input };
-            break;
-          case "findProduct":
-            finalToolData = { type: "product", data: toolInputPart.input };
-            break;
-          case "getStockPrice":
-            finalToolData = { type: "stock", data: toolInputPart.input };
-            break;
-          case "findVideo":
-            finalToolData = { type: "video", data: toolInputPart.input };
-            break;
-          case "showImagePlaceholder":
-            finalToolData = { type: "image", data: toolInputPart.input };
-            break;
-          case "showUserProfile":
-            finalToolData = { type: "profile", data: toolInputPart.input };
-            break;
-        }
-        return [finalToolData, debugPayload];
-      }
-    } catch (err) {
-      console.warn("Tool parsing error", err);
-    }
 
-    return [null, null]; 
+        const type = typeMap[invocation.toolName];
+        if (type) {
+          return { type, data: invocation.result };
+        }
+      }
+    }
+    return null;
   };
 
   return (
@@ -127,87 +91,69 @@ const ChatBotDemo = () => {
       <div className="flex flex-col h-screen">
         <Conversation className="flex-1">
           <ConversationContent className="overflow-auto pb-2">
-            {messages.map((message) => {
-              const textContent = message.parts
-                .filter(
-                  (part: any) =>
-                    part.type === "text" || part.type === "text-delta"
-                )
-                .map((part: any) => part.text ?? part.textDelta ?? "")
-                .join("");
+            {messages.length === 0 ? (
+              <div className="h-full flex items-center justify-center">
+                <p className="text-gray-400 text-lg">Start a conversation...</p>
+              </div>
+            ) : (
+              messages.map((message) => {
+                const toolData = getToolData(message);
+                const lastAssistantId = [...messages]
+                  .reverse()
+                  .find((m) => m.role === "assistant")?.id;
+                const isLatestAssistant =
+                  message.role === "assistant" &&
+                  message.id === lastAssistantId;
 
-              const [finalToolData, assembledToolPayload] = buildToolData(
-                message.parts
-              );
+                return (
+                  <div key={message.id} className="mb-4">
+                    {message.content && (
+                      <Message from={message.role} className="overflow-visible">
+                        <MessageContent className="overflow-visible">
+                          <Response>{message.content}</Response>
+                        </MessageContent>
+                      </Message>
+                    )}
 
-              console.debug("TOOL DEBUG (FrontEnd)", {
-                messageId: message.id,
-                "Render Hoga?": finalToolData ? "HAAN" : "NAHI",
-                finalToolData,
-                assembledToolPayload,
-              });
+                    {isLatestAssistant && message.content && (
+                      <Actions className="mt-2">
+                        <Action onClick={() => reload()} label="Retry">
+                          <RefreshCcwIcon className="size-3" />
+                        </Action>
+                        <Action
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(
+                                message.content
+                              );
+                              toast.success("Copied!", { duration: 1500 });
+                            } catch {
+                              toast.error("Failed to copy");
+                            }
+                          }}
+                          label="Copy"
+                          className="cursor-pointer"
+                        >
+                          <CopyIcon className="size-3" />
+                        </Action>
+                      </Actions>
+                    )}
 
-              const lastAssistantMessageId = [...messages]
-                .reverse()
-                .find((m: any) => m.role === "assistant")?.id;
-              const isLatestAssistantMessage =
-                message.role === "assistant" &&
-                message.id === lastAssistantMessageId;
-
-              return (
-                <div key={message.id}>
-                  {textContent && (
-                    <Message from={message.role} className="overflow-visible">
-                      <MessageContent className="overflow-visible">
-                        <Response>{textContent}</Response>
-                      </MessageContent>
-                    </Message>
-                  )}
-
-                  {isLatestAssistantMessage && (
-                    <Actions className="mt-2">
-                      <Action onClick={() => regenerate()} label="Retry">
-                        <RefreshCcwIcon className="size-3" />
-                      </Action>
-                      <Action
-                        onClick={async () => {
-                          try {
-                            await navigator.clipboard.writeText(textContent);
-                            toast.success("Copied successfully", {
-                              duration: 1600,
-                            });
-                          } catch {
-                            toast.error("Failed to copy");
-                          }
-                        }}
-                        label="Copy"
-                        className="cursor-pointer"
-                      >
-                        <CopyIcon className="size-3" />
-                      </Action>
-                    </Actions>
-                  )}
-
-                  {finalToolData ? (
-                    <div className="mt-3">
-                      <ToolRenderer data={finalToolData} />
-                    </div>
-                  ) : assembledToolPayload &&
-                    !finalToolData &&
-                    typeof assembledToolPayload === "object" ? (
-                    <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/40 rounded border border-yellow-200 dark:border-yellow-700">
-                      <strong className="block mb-2">
-                        Tool payload received (unknown shape):
-                      </strong>
-                      <pre className="text-xs overflow-auto max-h-48">
-                        {JSON.stringify(assembledToolPayload, null, 2)}
-                      </pre>
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
-            {status === "submitted" && <Loader />}
+                    {toolData && (
+                      <div className="mt-4 rounded-lg">
+                        <ToolRenderer data={toolData} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+            {isLoading && (
+              <div className="flex items-center gap-2">
+                <Loader />
+                <span className="text-gray-700">Generating response...</span>
+              </div>
+            )}
           </ConversationContent>
           <ConversationScrollButton />
         </Conversation>
@@ -227,7 +173,7 @@ const ChatBotDemo = () => {
             <PromptInputTextarea
               onChange={(e) => setInput(e.target.value)}
               value={input}
-              placeholder="Ask for sales data, weather, recipes, or search the web..."
+              placeholder="Ask for weather, products, recipes, sales, stocks, diets..."
             />
           </PromptInputBody>
           <PromptInputFooter>
@@ -238,38 +184,26 @@ const ChatBotDemo = () => {
                   <PromptInputActionAddAttachments />
                 </PromptInputActionMenuContent>
               </PromptInputActionMenu>
-              <PromptInputButton
-                variant={webSearch ? "default" : "ghost"}
-                onClick={() => setWebSearch(!webSearch)}
-                title={webSearch ? "Disable Web Search" : "Enable Web Search"}
-              >
+              <PromptInputButton variant="ghost">
                 <GlobeIcon size={16} />
                 <span>Search</span>
               </PromptInputButton>
-              <PromptInputModelSelect
-                onValueChange={(value: any) => {
-                  setModel(value);
-                }}
-                value={model}
-              >
+              <PromptInputModelSelect value={model} onValueChange={() => {}}>
                 <PromptInputModelSelectTrigger>
                   <PromptInputModelSelectValue />
                 </PromptInputModelSelectTrigger>
                 <PromptInputModelSelectContent>
-                  {models.map((model) => (
-                    <PromptInputModelSelectItem
-                      key={model.value}
-                      value={model.value}
-                    >
-                      {model.name}
+                  {models.map((m) => (
+                    <PromptInputModelSelectItem key={m.value} value={m.value}>
+                      {m.name}
                     </PromptInputModelSelectItem>
                   ))}
                 </PromptInputModelSelectContent>
               </PromptInputModelSelect>
             </PromptInputTools>
             <PromptInputSubmit
-              disabled={!input && status !== "streaming"}
-              status={status}
+              disabled={!input.trim() || isLoading}
+              status={isLoading ? "pending" : "idle"}
             />
           </PromptInputFooter>
         </PromptInput>

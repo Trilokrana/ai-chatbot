@@ -3,6 +3,7 @@
 import type { MapData } from "@/lib/types";
 
 const MapComponent = ({ data }: { data: MapData }) => {
+  console.log("📊 [FRONTEND] MapComponent got data:", data);
   // 1. API key ko .env.local se lein
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 

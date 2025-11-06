@@ -3,6 +3,7 @@ import type { UserProfileData } from "@/lib/types";
 import { UserIcon } from "lucide-react";
 
 const UserProfileComponent = ({ data }: { data: UserProfileData }) => {
+  console.log("👤 [FRONTEND] UserProfileComponent got data:", data);
   return (
     <div className="bg-indigo-50 dark:bg-indigo-900/50 p-4 rounded-lg my-2 border border-indigo-200 dark:border-indigo-700 transition-all duration-300 hover:shadow-lg group">
       <div className="flex items-center space-x-4">

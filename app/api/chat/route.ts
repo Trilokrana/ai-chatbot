@@ -1,21 +1,12 @@
-import { UIMessage, convertToModelMessages, streamText, tool } from "ai";
-import { createGoogleGenerativeAI, google } from "@ai-sdk/google";
+import { convertToCoreMessages, generateText, tool, generateObject } from "ai";
+import { google } from "@ai-sdk/google";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 30;
+export const maxDuration = 60;
 
-/* ---------------------- Schemas ---------------------- */
+/* ==================== Schemas for Structured Data ==================== */
 const schemas = {
-  iphoneSales: z.object({
-    year: z.number().default(2024),
-    salesData: z.array(
-      z.object({
-        month: z.string(),
-        sales: z.number().describe("Sales in millions"),
-      })
-    ),
-  }),
   weather: z.object({
     location: z.string(),
     temperature: z.number(),
@@ -33,6 +24,15 @@ const schemas = {
     prepTime: z.string(),
     ingredients: z.array(z.string()),
     instructions: z.array(z.string()),
+  }),
+  iphoneSales: z.object({
+    year: z.number().default(2024),
+    salesData: z.array(
+      z.object({
+        month: z.string(),
+        sales: z.number().describe("Sales in millions"),
+      })
+    ),
   }),
   diet: z.object({
     title: z.string(),
@@ -52,122 +52,92 @@ const schemas = {
     longitude: z.number(),
     zoom: z.number(),
   }),
-  video: z.object({
-    query: z.string(),
-    videoId: z.string(),
-    title: z.string(),
-  }),
-  image: z.object({
-    prompt: z.string(),
-    description: z.string(),
-  }),
-  userProfile: z.object({
-    name: z.string(),
-    bio: z.string(),
-    skills: z.array(z.string()),
-  }),
 };
 
-/* ---------------- Provider ---------------- */
-const googleProvider = createGoogleGenerativeAI({
-  apiKey:
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? process.env.GOOGLE_API_KEY,
-});
-
-/* ---------------- Tools ---------------- */
-function buildTools() {
+/* ==================== Build Tools ==================== */
+function buildTools(modelInstance: ReturnType<typeof google>) {
   const tools: Record<string, any> = {};
 
   for (const [name, schema] of Object.entries(schemas)) {
     tools[name] = tool({
-      description: `Generate structured data for ${name}`,
-      inputSchema: schema,
-      execute: async (input: z.infer<typeof schema>) => {
-        console.log(`✅ TOOL CALLED: ${name}`, input);
-        return input;
+      description: `Generate structured ${name} data when user asks for ${name}`,
+      parameters: z.object({
+        userRequest: z.string().describe(`The user's request for ${name} data`),
+      }),
+      async execute({ userRequest }: { userRequest: string }) {
+        try {
+          console.log(`🔄 Generating ${name} for: ${userRequest}`);
+
+          const { object } = await generateObject({
+            model: modelInstance,
+            schema: schema as z.ZodType,
+            prompt: userRequest,
+            system: `Generate realistic ${name} data. Return ONLY valid JSON.`,
+          });
+
+          console.log(`✅ Generated ${name}:`, object);
+          return object;
+        } catch (error) {
+          console.error(`❌ Error generating ${name}:`, error);
+          throw error;
+        }
       },
     });
   }
 
-  tools.fallbackResponder = tool({
-    description: "Handles general questions and non-structured prompts.",
-    inputSchema: z.object({ query: z.string() }),
-    execute: async ({ query }) => {
-      console.log("⚠️ Fallback tool triggered for:", query);
-      return { message: `No specific tool matched: ${query}` };
-    },
-  });
-
   return tools;
 }
 
-/* ---------------- Chat Handler ---------------- */
+/* ==================== Chat Handler ==================== */
 export async function POST(req: Request) {
   try {
-    const payload = (await req.json()) as {
-      messages?: UIMessage[];
-      model?: string;
-      webSearch?: boolean;
-    };
+    const body = await req.json();
+    const messages = body.messages || [];
+    const modelName = body.model || "gemini-2.0-flash";
 
-    const uiMessages = payload.messages ?? [];
- 
-    const options = {
-      model: payload.model,
-      webSearch: payload.webSearch,
-    };
+    const model = google(modelName);
+    const tools = buildTools(model);
 
-    console.log("🟢 [BACKEND] Request received:", {
-      totalMessages: uiMessages.length,
-      model: options.model,
-      webSearch: options.webSearch,
-    });
+    const systemPrompt = `You are a helpful AI assistant. You can:
+1. Answer any general questions completely
+2. Write essays, poems, stories in full
+3. Generate structured data using tools when specifically asked
 
-    const modelId = (options.model ?? "google/gemini-2.5-flash").replace(
-      /^google\//,
-      ""
-    );
-    const model = google(modelId);
+For general questions, respond with complete, detailed answers.
+Use tools only when user asks for weather, products, recipes, sales data, diet plans, stock info, or maps.
 
-    const tools = buildTools();
+Be thorough and helpful.`;
 
-    const systemInstructions = `
-You are a structured data assistant.
-When a user asks for data that fits any schema (like weather, product, sales, map, etc.),
-you MUST call the appropriate tool and return a valid structured object.
-Never reply with plain text or markdown JSON.
-Always produce valid JSON matching the Zod schema of the selected tool.
-`;
+    console.log("📨 Processing request with", messages.length, "messages");
 
-    const result = streamText({
+    // USE generateText instead of streamText for complete responses
+    const result = await generateText({
       model,
-      system: systemInstructions,
-      messages: convertToModelMessages(uiMessages),
+      system: systemPrompt,
+      messages: convertToCoreMessages(messages),
       tools,
       toolChoice: "auto",
-      onError(err: any) {
-        console.error("❌ [BACKEND] Stream error:", err);
-      },
+      maxTokens: 8192,
+    });
 
-      onStepFinish(step: any) {
-        console.log("🌿 [BACKEND] Step finished:", step);
-      },
+    console.log("✅ Generated response:", result.text.substring(0, 100));
+    console.log("🔧 Tool results:", result.toolResults?.length || 0);
 
-      onToolCall({ name, args }: any) {
-        console.log("🧩 [BACKEND] Tool call detected:", name, args);
-      },
-
-      onToolResult({ name, result }: any) {
-        console.log("📦 [BACKEND] Tool result:", name, result);
-      },
-    } as any);
-
-    console.log("🚀 [BACKEND] Returning AI stream response…");
-    return result.toTextStreamResponse();
-  } catch (err: any) {
-    console.error("🔥 [BACKEND] Chatbot error:", err);
+    // Return complete response with tool results
     return new Response(
-      JSON.stringify({ error: String(err?.message ?? err) }),
+      JSON.stringify({
+        content: result.text,
+        toolResults: result.toolResults || [],
+        usage: result.usage,
+      }),
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (error: any) {
+    console.error("🔥 API Error:", error);
+    return new Response(
+      JSON.stringify({ error: error?.message || "Internal server error" }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }

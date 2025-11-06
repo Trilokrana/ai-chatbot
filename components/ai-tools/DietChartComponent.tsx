@@ -2,6 +2,7 @@
 import type { DietData } from "@/lib/types";
 
 const DietChartComponent = ({ data }: { data: DietData }) => {
+  console.log("📊 [FRONTEND] DietChartComponent got data:", data);
   if (!data || !Array.isArray(data.data)) return null;
   const total = data.data.reduce((s, d) => s + (d.value || 0), 0) || 1;
   const colors = [

@@ -3,6 +3,7 @@ import type { VideoData } from "@/lib/types";
 import { YoutubeIcon } from "lucide-react";
 
 const VideoComponent = ({ data }: { data: VideoData }) => {
+  console.log("📹 [FRONTEND] VideoComponent got data:", data);
   const embedUrl = `https://www.youtube.com/embed/${data.videoId}`;
   return (
     <div className="bg-red-50 dark:bg-red-900/50 p-4 rounded-lg my-2 border border-red-200 dark:border-red-700 transition-all duration-300 hover:shadow-lg group">

@@ -3,6 +3,7 @@ import type { ImageData } from "@/lib/types";
 import { ImageIcon } from "lucide-react";
 
 const ImageComponent = ({ data }: { data: ImageData }) => {
+  console.log("🖼️ [FRONTEND] ImageComponent got data:", data);
   return (
     <div className="bg-purple-50 dark:bg-purple-900/50 p-4 rounded-lg my-2 border border-purple-200 dark:border-purple-700 transition-all duration-300 hover:shadow-lg">
       <div className="flex items-center space-x-3 mb-2">
