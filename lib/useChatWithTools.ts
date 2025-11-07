@@ -52,26 +52,22 @@ export function useChatWithTools(options: { api: string }) {
         const decoder = new TextDecoder();
         let buffer = "";
 
-        // Read entire stream
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           buffer += decoder.decode(value, { stream: true });
         }
 
-        // Final decode
         buffer += decoder.decode();
 
         console.log("📦 Raw Buffer:", buffer.substring(0, 200));
 
-        // Split by newlines
         const lines = buffer.split("\n");
 
         for (const line of lines) {
           const trimmed = line.trim();
           if (!trimmed) continue;
 
-          // Find first colon
           const colonIdx = trimmed.indexOf(":");
           if (colonIdx === -1) continue;
 
@@ -81,16 +77,14 @@ export function useChatWithTools(options: { api: string }) {
           console.log(`📝 Code: ${code}, Data: ${data.substring(0, 60)}`);
 
           if (code === "0") {
-            // TEXT CONTENT - This is the key fix
             try {
               let text = "";
 
-              // First, try parsing as JSON string
+              // parsing as JSON string
               if (data.startsWith('"')) {
                 try {
                   text = JSON.parse(data);
                 } catch (e) {
-                  // If JSON fails, take raw data without quotes
                   text = data.replace(/^"|"$/g, "");
                 }
               } else {
@@ -112,7 +106,6 @@ export function useChatWithTools(options: { api: string }) {
               assistantContent += data;
             }
           } else if (code === "9") {
-            // TOOL CALL
             try {
               const toolCall = JSON.parse(data);
               toolInvocations.push({
@@ -125,7 +118,6 @@ export function useChatWithTools(options: { api: string }) {
               console.error("Error parsing tool call:", e);
             }
           } else if (code === "a") {
-            // TOOL RESULT
             try {
               const result = JSON.parse(data);
               const toolInv = toolInvocations.find(
@@ -141,8 +133,8 @@ export function useChatWithTools(options: { api: string }) {
           }
         }
 
-        console.log("✅ FINAL LENGTH:", assistantContent.length);
-        console.log("✅ FINAL CONTENT:", assistantContent.substring(0, 150));
+        // console.log("✅ FINAL LENGTH:", assistantContent.length);
+        // console.log("✅ FINAL CONTENT:", assistantContent.substring(0, 150));
 
         const assistantMessage: ChatMessage = {
           id: nanoid(),
@@ -154,7 +146,7 @@ export function useChatWithTools(options: { api: string }) {
 
         setMessages((prev) => [...prev, assistantMessage]);
       } catch (error) {
-        console.error("❌ Chat error:", error);
+        console.error("Chat error:", error);
         const errorMessage: ChatMessage = {
           id: nanoid(),
           role: "assistant",

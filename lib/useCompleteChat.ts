@@ -68,12 +68,12 @@ export function useCompleteChat(options: { api: string }) {
           toolInvocations: toolInvocations.length > 0 ? toolInvocations : undefined,
         };
 
-        console.log("✅ Final message:", assistantMessage.content.substring(0, 100));
-        console.log("🔧 Tool invocations:", toolInvocations.length);
+        // console.log("✅ Final message:", assistantMessage.content.substring(0, 100));
+        // console.log("🔧 Tool invocations:", toolInvocations.length);
 
         setMessages((prev) => [...prev, assistantMessage]);
       } catch (error) {
-        console.error("❌ Chat error:", error);
+        console.error("Chat error:", error);
         const errorMessage: ChatMessage = {
           id: nanoid(),
           role: "assistant",
