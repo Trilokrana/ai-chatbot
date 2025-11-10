@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI Chatbot – Next.js Demo
 
-## Getting Started
+A conversational AI demo built with **Next.js App Router**, **Streaming AI SDK**, and interactive UI components from ShadCN. It supports free-form chat plus structured tool responses (weather, recipes, map lookup, sales data, diet plans, stocks, and products).
 
-First, run the development server:
+## ✨ Features
+
+- 🔄 Chat with Gemini models (configurable via dropdown)
+- 🧠 Tool-aware responses parsed into rich components
+- 🗂️ File attachments & drag/drop in the prompt box
+- 📍 Map, 📈 sales, 🥗 diet, 🍳 recipe, 📦 product, 🌤️ weather, and 📊 stock renderers
+- ⚡ Streaming UX with retry, copy, and loading indicators
+- ♿ Accessible UI with keyboard-friendly controls
+
+## 🚀 Quick Start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit **http://localhost:3000**.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🔑 Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Create `.env.local`:
 
-## Learn More
+```
+GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_key
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=optional_google_maps_embed_key
+```
 
-To learn more about Next.js, take a look at the following resources:
+The Google key powers tool generation (weather, recipes, etc.). Maps fallback works without a key but has limited features.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🧩 Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `app/` – App Router pages, API route, chatbot UI
+- `components/ai-elements/` – Prompt, conversation, and tool UI primitives
+- `components/ai-tools/` – Weather, product, recipe, map, and other tool renderers
+- `lib/useCompleteChat.ts` – Chat hook for non-streaming tool responses
+- `lib/extractToolData.ts` – Parses tool JSON into typed payloads
+- `app/api/chat/route.ts` – Gemini integration + tool definitions
 
-## Deploy on Vercel
+## 🛠️ Tooling
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Tool name | Purpose |
+|-----------|---------|
+| `weather` | Structured weather cards |
+| `product` | Product detail summaries |
+| `recipe`  | Cooking instructions |
+| `iphoneSales` | Sales chart data |
+| `diet`    | Nutrition plan data |
+| `stock`   | Stock quote snapshot |
+| `map`     | Location coordinates/zoom |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Tools auto-trigger when the user explicitly requests structured data; otherwise, the assistant replies normally.
+
+## 📦 Deployment
+
+1. Set environment variables on Vercel (or host of choice)
+2. Run `pnpm build`
+3. Deploy with `vercel --prod` or your CI workflow
+
+## 🧪 Testing / Linting
+
+```bash
+npm lint     # Run ESLint
+npm test     # Add tests as needed
+```
+
+## 🙌 Contributing
+
+- Fork and create a feature branch
+- Ensure lint passes
+- Submit PR with context screenshots if UI-affecting
+
+## 📄 License
+
+MIT © 2025
